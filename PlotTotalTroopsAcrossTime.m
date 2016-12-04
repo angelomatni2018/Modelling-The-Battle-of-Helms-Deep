@@ -1,9 +1,10 @@
-function out = PlotTotalTroopsAcrossTime(troopMatrix, timeInterval)
+function out = PlotTotalTroopsAcrossTime(troopMatrix, army, timeInterval)
     figure;
     hold on;
-    totalTroopsX = sum(troopMatrix,1);
+    totalTroops = sum(troopMatrix,1);
+    % for each soldier type
     for ii = 1:size(troopMatrix,2)
-        a = totalTroopsX(:,ii,:);
-        plot(timeInterval,reshape(a,1,size(a,3),1));
+        soldier = totalTroops(:,ii,army,:);
+        plot(timeInterval,reshape(soldier,1,size(soldier,4)));
     end
 end
