@@ -183,7 +183,7 @@ while (AllArmiesAlive(armies) && time < debugNumRuns)
             % For soldier type kk
             survivalI = 1;
             for kk = 1:size(armies,2)
-                transfer = armies(ii,kk,xx) * transferRate(ii,jj,kk);
+                transfer = transferRate(ii,jj,kk);
                 if (transfer > 0)
                 %fprintf('zone %d to %d\n',ii,jj);
                 %fprintf('before transfer: %d\n',transfer);
@@ -255,10 +255,10 @@ while (AllArmiesAlive(armies) && time < debugNumRuns)
 end
 
 % Plots army 1 total troop value for each iteration 
-PlotTotalTroopsAcrossTime(states,1,1:time,soldierNames);
 
 % Plots army 2 troops across zones for each iteration
 for ii = 1:size(armies,3)
+    PlotTotalTroopsAcrossTime(states,ii,1:time,soldierNames);
     PlotTroopsAcrossZones(states,ii,1:time);
 end
 
