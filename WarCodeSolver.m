@@ -7,9 +7,9 @@ for advance = linspace(0,1,100)
    
     % cycle through possible choices for normalized parameter of flow
     cArmy1Troop1 = [
-        0 advance advance advance
-        0 0 0 0
-        0 0 0 0
+        0 advance advance 0
+        0 0 0 advance
+        0 0 0 advance
         0 0 0 0
     ];
     % Assuming artillery don't move
@@ -20,9 +20,9 @@ for advance = linspace(0,1,100)
         0 0 0 0
     ];
     cArmy1Troop3 = [
-        0 advance advance advance
-        0 0 0 0
-        0 0 0 0
+        0 advance advance 0
+        0 0 0 advance
+        0 0 0 advance
         0 0 0 0
     ];
 
@@ -31,8 +31,9 @@ for advance = linspace(0,1,100)
     % Run iterator and get rank, which is defined as
     % number of troops left of army we're optimizing -
     % number of troops left of all other armies
-    tempRank = WarCodeIterator(choices,armyIndex, 0);
-    if (tempRank >= topRank)
+    [numLeft,numKilled] = WarCodeIterator(choices,armyIndex, 0);
+    tempRank = numLeft - numKilled;
+    if (tempRank >= topRank && numKilled > 0)
         topChoice = choices;
         topRank = tempRank;
     end
@@ -42,7 +43,7 @@ end
 WarCodeIterator(topChoice,armyIndex, 1);
 end
 
-function rank = WarCodeIterator(choices, optimizingArmy, plot)
+function [numLeft, numKilled] = WarCodeIterator(choices, optimizingArmy, plot)
 
 soldierNames = {
   'Rifleman'
@@ -58,7 +59,7 @@ soldierNames = {
 % notice zones (rows) only contain troops from one army
 
 armies = [
-    110 90 60
+    100 0 80
     0 0 0 
     0 0 0
     0 0 0
@@ -67,7 +68,7 @@ armies(:,:,2) = [
     0 0 0
     0 0 0
     0 0 0
-    100 100 40
+    300 0 40
 ];
 
 % ---------------------------------------------------------------- %
@@ -112,10 +113,10 @@ choiceRate = choices;
 
 survivalFactor = 1;
 survivalRate = [
-    0 1 1 1
-    1 0 1 .8
-    1 1 0 .8
-    1 1 1 1
+    0 .8 .8 0
+    0 0 0 .8
+    0 0 0 .8
+    0 0 0 0
 ];
 
 % ---------------------------------------------------------------- %
@@ -133,7 +134,7 @@ killRate(:,:,1,1) = [
     0 0 0 0
     0 0 0 0
     0 0 0 .1
-    0 0 .1 0
+    0 0 .1 .1
 ];
 
 %troop1Attack2 = troop1Attack1;
@@ -142,9 +143,9 @@ killRate(:,:,1,2) = killRate(:,:,1,1);
 %troop1Attack3 
 killRate(:,:,1,3) = [
     0 0 0 0
-    0 0 0 0
     0 0 0 .05
-    0 0 .05 0
+    0 0 0 .05
+    0 .05 .05 .05
 ];
 
 %troop2Attack1 = troop1Attack1;
@@ -162,9 +163,9 @@ killRate(:,:,2,2:3) = repmat(killRate(:,:,2,1),1,1,1,2);
 %troop3Attack1 
 killRate(:,:,3,1) = [
     0 0 0 0
-    0 0 0 0
     0 0 0 .2
-    0 0 .2 0
+    0 0 0 .2
+    0 .2 .2 .2
 ];
 
 %troop3Attack2 = troop3Attack1;
@@ -173,6 +174,22 @@ killRate(:,:,3,2) = killRate(:,:,3,1);
 killRate(:,:,3,3) = killRate(:,:,1,1);
 
 %killRate = cat(4, troopXattackY);
+
+% ---------------------------------------------------------------- %
+
+% attackPercent: percentage of troops killing other troops for:
+% dimension 1: soldier type in zone attacking from
+% dimension 2: soldier type in zone getting attacked
+% dimension 3: army type
+
+attackPercent(:,:,1) = [
+    .5 .5 0
+    1/3 1/3 1/3
+    .1 0 .9
+];
+
+% Same strat currently used by both sides
+attackPercent(:,:,2) = attackPercent(:,:,1);
 
 % ---------------------------------------------------------------- %
 
@@ -189,6 +206,9 @@ transferAmts = zeros(size(flowRate,1),size(flowRate,3));
 killI = 1;
 killJ = 1;
 incKill = (size(killRate,3) > 1);
+
+% Save number of each army of initial state:
+initTroops = sum(sum(armies,1),2);
 
 debugNumRuns = 100; %
 while (AllArmiesAlive(armies) && time < debugNumRuns)
@@ -258,14 +278,23 @@ while (AllArmiesAlive(armies) && time < debugNumRuns)
             % from zone A to zone B
             for ii = 1:size(killRate,1)
             for jj = 1:size(killRate,2)
-                if (ii == jj)
-                    continue;
+                % local history of attack percents:
+                % Readjusted when a type of troop isn't available to attack
+                % so that sum over attack percents for all troops being
+                % attacked in a zone is = 1 (no wasted attack effort)
+                localAttack = attackPercent(kk,:,xx);
+                for ll = 1:size(armies,2)
+                   if armies(jj,ll,yy) == 0
+                      localAttack(ll) = 0;
+                      localAttack = localAttack / norm(localAttack);
+                   end
                 end
-                % attacking each soldier type
+                
+                % attacking each soldier type using correct attack percents
                 killJ = 1;
                 for ll = 1:size(armies,2)
                     deaths = floor(armies(ii,kk,xx) * ...
-                        killRate(ii,jj,killI,killJ));
+                        killRate(ii,jj,killI,killJ)) * localAttack(ll);
                     killingAmts(jj,ll,yy) = killingAmts(jj,ll,yy) + deaths;
                     killJ = killJ + incKill;
                 end
@@ -295,12 +324,14 @@ if plot == 1
 end
 
 % Calculate rank
-rank = sum(sum(states(:,:,optimizingArmy,time)));
+numLeft = sum(sum(states(:,:,optimizingArmy,time)));
+numKilled = 0;
 for ii = 1:size(armies,3)
    if ii == optimizingArmy
        continue;
    end
-   rank = rank - sum(sum(states(:,:,ii,time)));
+   numKilled = numKilled + initTroops(ii) - ...
+       sum(sum(states(:,:,ii,time)));
 end
 
 end
