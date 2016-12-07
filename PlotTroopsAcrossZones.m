@@ -1,18 +1,21 @@
-function out = PlotTroopsAcrossZones(troopMatrix, army, timeInterval)
+function out = PlotTroopsAcrossZones(troopMatrix, armies, timeInterval)
     figure;
-    hold on;
-    title(['Troops for army ',num2str(army),' for each time step']);
-    ylabel('Number of troops');
-    xlabel('Time step');
-    totalTroopsX = sum(troopMatrix,2);
-    % for each zone
-    for ii = 1:size(troopMatrix,1)
-        zone = totalTroopsX(ii,:,army,:);
-        if sum(zone) > 0
-        plot(timeInterval,reshape(zone,1,size(zone,4)),...
-            'DisplayName',['zone ',num2str(ii)]);
+    for xx = 1:armies
+        s(xx) = subplot(armies,1,xx);
+        hold on;
+        title(s(xx),['Troops for army ',num2str(xx),' for each time step']);
+        ylabel(s(xx),'Number of troops');
+        xlabel(s(xx),'Time step');
+        totalTroopsX = sum(troopMatrix,2);
+        % for each zone
+        for ii = 1:size(troopMatrix,1)
+            zone = totalTroopsX(ii,:,xx,:);
+            if sum(zone) > 0
+            plot(timeInterval,reshape(zone,1,size(zone,4)),...
+                'DisplayName',['zone ',num2str(ii)]);
+            end
         end
+
+        legend(s(xx),'show')
     end
-    
-    legend('show')
 end

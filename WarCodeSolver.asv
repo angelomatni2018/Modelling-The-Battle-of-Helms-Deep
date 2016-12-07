@@ -1,11 +1,31 @@
-clear;
+function out = WarCodeSolver()
 
-soldierNames = {
-  'Rifleman'
-  'Artillery'
-  'Cavalry'
-};
+for advance = linspace(0,1,100)
+cArmy1Troop1 = [
+    0 advance advance 0
+    0 0 0 0
+    0 0 0 0
+    0 0 0 0
+];
+% Assuming artillery don't move
+cArmy1Troop2 = [
+    0 0 0 0
+    0 0 0 0
+    0 0 0 0
+    0 0 0 0
+];
+cArmy1Troop3 = [
+    0 advance advance 0
+    0 0 0 0
+    0 0 0 0
+    0 0 0 0
+];
 
+choiceRate = cat(4,cArmy1Troop1,cArmy1Troop2,cArmy1Troop3);
+
+end
+
+function rank = WarCodeIterator(choices)
 % armies: an array of # of troops for:
 % dimension 1: zone (1, 2, ...)
 % dimension 2: soldier type (rifleman, artillery, ...)
@@ -14,16 +34,16 @@ soldierNames = {
 % notice zones (rows) only contain troops from one army
 
 armies = [
-    150 100 60
-    0 0 0 
-    0 0 0
+    100 50 20
+    20 10 5 
+    20 10 5
     0 0 0
 ];
 armies(:,:,2) = [
     0 0 0
     0 0 0
     0 0 0
-    100 140 40
+    300 100 50
 ];
 
 % ---------------------------------------------------------------- %
@@ -55,29 +75,7 @@ flowRate(:,:,3) = flowRate(:,:,1);
 % should be at the end of this 4d array. Otherwise, space would be 
 % wasted for a bunch of 0 filled matrices
 
-advance = 1;
-
-cArmy1Troop1 = [
-    0 advance advance 0
-    0 0 0 0
-    0 0 0 0
-    0 0 0 0
-];
-% Assuming artillery don't move
-cArmy1Troop2 = [
-    0 0 0 0
-    0 0 0 0
-    0 0 0 0
-    0 0 0 0
-];
-cArmy1Troop3 = [
-    0 advance advance 0
-    0 0 0 0
-    0 0 0 0
-    0 0 0 0
-];
-
-choiceRate = cat(4,cArmy1Troop1,cArmy1Troop2,cArmy1Troop3);
+choiceRate = choices;
 
 % ---------------------------------------------------------------- %
 
@@ -263,11 +261,8 @@ while (AllArmiesAlive(armies) && time < debugNumRuns)
     end
 end
 
-% Plots army total troop value for each iteration 
-PlotTotalTroopsAcrossTime(states,size(armies,3),1:time,soldierNames);
+end
 
-% Plots army troops across zones for each iteration
-PlotTroopsAcrossZones(states,size(armies,3),1:time);
 
 
 

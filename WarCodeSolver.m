@@ -1,4 +1,48 @@
-clear;
+function [topRank, topChoice] = WarCodeSolver(armyIndex)
+
+% as good as -infinity goes
+topRank = -100000;
+
+for advance = linspace(0,1,100)
+   
+    % cycle through possible choices for normalized parameter of flow
+    cArmy1Troop1 = [
+        0 advance advance advance
+        0 0 0 0
+        0 0 0 0
+        0 0 0 0
+    ];
+    % Assuming artillery don't move
+    cArmy1Troop2 = [
+        0 0 0 0
+        0 0 0 0
+        0 0 0 0
+        0 0 0 0
+    ];
+    cArmy1Troop3 = [
+        0 advance advance advance
+        0 0 0 0
+        0 0 0 0
+        0 0 0 0
+    ];
+
+    choices = cat(4,cArmy1Troop1,cArmy1Troop2,cArmy1Troop3);
+    
+    % Run iterator and get rank, which is defined as
+    % number of troops left of army we're optimizing -
+    % number of troops left of all other armies
+    tempRank = WarCodeIterator(choices,armyIndex, 0);
+    if (tempRank >= topRank)
+        topChoice = choices;
+        topRank = tempRank;
+    end
+end
+
+% Run iterator with plot flag set to 1
+WarCodeIterator(topChoice,armyIndex, 1);
+end
+
+function rank = WarCodeIterator(choices, optimizingArmy, plot)
 
 soldierNames = {
   'Rifleman'
@@ -14,7 +58,7 @@ soldierNames = {
 % notice zones (rows) only contain troops from one army
 
 armies = [
-    150 100 60
+    110 90 60
     0 0 0 
     0 0 0
     0 0 0
@@ -23,7 +67,7 @@ armies(:,:,2) = [
     0 0 0
     0 0 0
     0 0 0
-    100 140 40
+    100 100 40
 ];
 
 % ---------------------------------------------------------------- %
@@ -35,9 +79,9 @@ armies(:,:,2) = [
 % each initialization is for one soldier type
 
 flowRate = [
-    0 .5 .5 0
-    0 0 0 0
-    0 0 0 0
+    0 50 50 0
+    0 0 0 50
+    0 0 0 50
     0 0 0 0
 ];
 flowRate(:,:,2) = zeros(size(flowRate)); % Assuming artillery don't move
@@ -55,29 +99,7 @@ flowRate(:,:,3) = flowRate(:,:,1);
 % should be at the end of this 4d array. Otherwise, space would be 
 % wasted for a bunch of 0 filled matrices
 
-advance = 1;
-
-cArmy1Troop1 = [
-    0 advance advance 0
-    0 0 0 0
-    0 0 0 0
-    0 0 0 0
-];
-% Assuming artillery don't move
-cArmy1Troop2 = [
-    0 0 0 0
-    0 0 0 0
-    0 0 0 0
-    0 0 0 0
-];
-cArmy1Troop3 = [
-    0 advance advance 0
-    0 0 0 0
-    0 0 0 0
-    0 0 0 0
-];
-
-choiceRate = cat(4,cArmy1Troop1,cArmy1Troop2,cArmy1Troop3);
+choiceRate = choices;
 
 % ---------------------------------------------------------------- %
 
@@ -88,12 +110,12 @@ choiceRate = cat(4,cArmy1Troop1,cArmy1Troop2,cArmy1Troop3);
 % if the third dimension type is of size 1, all troops have the same
 % survival rate when crossing from zone A to B
 
-survivalFactor = .7;
+survivalFactor = 1;
 survivalRate = [
     0 1 1 1
-    1 0 1 1
-    1 1 0 1
-    1 1 1 0
+    1 0 1 .8
+    1 1 0 .8
+    1 1 1 1
 ];
 
 % ---------------------------------------------------------------- %
@@ -121,7 +143,7 @@ killRate(:,:,1,2) = killRate(:,:,1,1);
 killRate(:,:,1,3) = [
     0 0 0 0
     0 0 0 0
-    0 0 0 0
+    0 0 0 .05
     0 0 .05 0
 ];
 
@@ -129,10 +151,10 @@ killRate(:,:,1,3) = [
 %troop2Attack2 = troop1Attack1;
 %troop2Attack3 = troop1Attack1;
 killRate(:,:,2,1) = [
-    0 0 0 .05
     0 0 0 .1
-    0 0 0 .15
-    .05 .1 .15 0
+    0 0 0 .3
+    0 0 0 .3
+    .1 .3 .3 0
 ];
 
 killRate(:,:,2,2:3) = repmat(killRate(:,:,2,1),1,1,1,2);
@@ -263,11 +285,26 @@ while (AllArmiesAlive(armies) && time < debugNumRuns)
     end
 end
 
-% Plots army total troop value for each iteration 
-PlotTotalTroopsAcrossTime(states,size(armies,3),1:time,soldierNames);
+% Plot if flag is set to 1
+if plot == 1
+    % Plots army total troop value for each iteration 
+    PlotTotalTroopsAcrossTime(states,size(armies,3),1:time,soldierNames);
 
-% Plots army troops across zones for each iteration
-PlotTroopsAcrossZones(states,size(armies,3),1:time);
+    % Plots army troops across zones for each iteration
+    PlotTroopsAcrossZones(states,size(armies,3),1:time);
+end
+
+% Calculate rank
+rank = sum(sum(states(:,:,optimizingArmy,time)));
+for ii = 1:size(armies,3)
+   if ii == optimizingArmy
+       continue;
+   end
+   rank = rank - sum(sum(states(:,:,ii,time)));
+end
+
+end
+
 
 
 
