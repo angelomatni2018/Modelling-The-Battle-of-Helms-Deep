@@ -1,5 +1,11 @@
 clear;
 
+soldierNames = {
+  'Rifleman'
+  'Artillery'
+  'Cavalry'
+};
+
 % armies: an array of # of troops for:
 % dimension 1: zone (1, 2, ...)
 % dimension 2: soldier type (rifleman, artillery, ...)
@@ -249,10 +255,12 @@ while (AllArmiesAlive(armies) && time < debugNumRuns)
 end
 
 % Plots army 1 total troop value for each iteration 
-PlotTotalTroopsAcrossTime(states,1,1:time);
+PlotTotalTroopsAcrossTime(states,1,1:time,soldierNames);
 
 % Plots army 2 troops across zones for each iteration
-PlotTroopsAcrossZones(states,2,1:time);
+for ii = 1:size(armies,3)
+    PlotTroopsAcrossZones(states,ii,1:time);
+end
 
 
 
